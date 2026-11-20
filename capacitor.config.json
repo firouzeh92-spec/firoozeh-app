@@ -1,0 +1,3 @@
+{"appId":"ir.firoozeh.filing","appName":"فایلینگ فیروزه","webDir":"www",
+"plugins":{"CapacitorHttp":{"enabled":true}},
+"server":{"androidScheme":"https"}}

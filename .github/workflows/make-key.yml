@@ -1,0 +1,13 @@
+name: Make Key
+on: [workflow_dispatch]
+jobs:
+  key:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/setup-java@v4
+        with: {distribution: temurin, java-version: 17}
+      - run: |
+          keytool -genkeypair -keystore firoozeh.jks -alias firoozeh -keyalg RSA -keysize 2048 -validity 36500 -storepass Firoozeh1405 -keypass Firoozeh1405 -dname "CN=Firoozeh, O=Firoozeh, C=IR"
+          base64 -w0 firoozeh.jks > key.txt
+      - uses: actions/upload-artifact@v4
+        with: {name: firoozeh-key, path: key.txt}

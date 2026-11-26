@@ -43,11 +43,16 @@ label{font-size:12px;color:var(--mut);display:block;margin-bottom:2px}
 .empty{text-align:center;color:var(--mut);padding:30px}
 #toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#222;color:#fff;padding:8px 16px;border-radius:20px;display:none;z-index:50}
 .hide{display:none!important}
-@media(max-width:520px){.grid{grid-template-columns:1fr}}
+@media(max-width:520px){.grid:not(.g2){grid-template-columns:1fr}}
+.seg{display:flex;gap:6px;flex-wrap:wrap}.seg .btn{min-width:0;flex:none;padding:8px 12px}
+.chk{display:flex;gap:8px;align-items:center;justify-content:flex-start;font-size:14px;color:var(--txt)}.chk input{flex:none;width:auto;min-width:0}
+#mAdd .grid.g2>div{min-width:0}#mAdd input,#mAdd select{width:100%;min-width:0;box-sizing:border-box}
 body{font-family:Vazirmatn,Tahoma,sans-serif;background:#eef2f8;font-size:15px;line-height:1.7}
 header{background:linear-gradient(135deg,#1e4fd8,#3b82f6);box-shadow:0 2px 12px rgba(30,79,216,.25);padding:12px 16px}
 header h1{font-size:19px;font-weight:800}
 header button{font-family:inherit;font-weight:600;border-radius:10px;font-size:13px}
+.mic-btn{position:fixed;bottom:20px;left:20px;width:56px;height:56px;border-radius:50%;background:var(--gold);color:#fff;border:0;font-size:24px;cursor:pointer;z-index:15;box-shadow:0 4px 16px rgba(184,150,62,.4);display:flex;align-items:center;justify-content:center}
+.mic-btn:active{transform:scale(0.95)}
 nav{padding:12px;gap:8px;box-shadow:0 2px 8px rgba(0,0,0,.04)}
 nav button{font-weight:700;font-size:14px;padding:9px 16px;border:1px solid #dbe3ef;box-shadow:0 1px 2px rgba(0,0,0,.04)}
 nav button.on{box-shadow:0 4px 12px rgba(31,111,235,.35)}
@@ -137,34 +142,66 @@ label,.mut{color:var(--mut)!important}
     <div id="count" class="mut" style="margin:0 4px 8px"></div>
     <div id="list"></div>
   </main>
+<button class="mic-btn" id="micBtn" onclick="startVoice()" title="ثبت صوتی">🎤</button>
 </div>
+
+<!-- تأیید ثبت صوتی -->
+<div class="modal" id="mVoice"><div class="box">
+  <h2>بررسی اطلاعات شناسایی‌شده</h2>
+  <p class="mut" style="margin:4px 0 12px;font-size:13px">متن شنیده‌شده: <span id="vRaw" style="font-weight:600;color:var(--txt)"></span></p>
+  <div class="grid g2" id="vFields"></div>
+  <div class="acts" style="margin-top:16px">
+    <button class="btn" onclick="confirmVoice()">تأیید و ثبت</button>
+    <button class="btn" onclick="editVoice()">ویرایش دستی</button>
+    <button class="btn g" onclick="closeM('mVoice')">انصراف</button>
+  </div>
+</div></di<!-- انتخاب وضعیت -->
+<div class="modal" id="mStatus"><div class="box">
+  <h2>تغییر وضعیت</h2>
+  <div style="margin:12px 0">
+    <label>وضعیت جدید</label>
+    <select id="sStatus">
+      <option value="">بدون وضعیت</option>
+      <option>در انتظار</option>
+      <option>در حال پیگیری</option>
+      <option>موفق</option>
+      <option>لغو شده</option>
+      <option>نیاز به بررسی</option>
+    </select>
+  </div>
+  <div class="acts">
+    <button class="btn" onclick="submitStatus()">ثبت</button>
+    <button class="btn g" onclick="closeM('mStatus')">انصراف</button>
+  </div>
+</div></div>
+
+v>
 
 <!-- فرم افزودن فایل -->
 <div class="modal" id="mAdd"><div class="box">
-  <h2>ثبت فایل دستی</h2>
-  <div class="grid">
-    <div><label>نوع معامله *</label><select id="a_DealType"><option>فروش</option><option>رهن و اجاره</option></select></div>
-    <div><label>نوع ملک</label><input id="a_PropertyType" placeholder="آپارتمان"></div>
-    <div class="full"><label>آدرس / منطقه *</label><input id="a_Address"></div>
+  <h2 id="aTitle">ثبت فایل دستی</h2>
+  <div class="grid g2">
+    <div><label>نوع معامله *</label><select id="a_DealType" onchange="addDealUI()"><option>فروش</option><option>رهن و اجاره</option></select></div>
+    <div><label>نوع ملک</label><select id="a_PropertyType"></select></div>
+    <div><label>آدرس / منطقه *</label><input id="a_Address"></div>
     <div><label>متراژ</label><input id="a_Area" inputmode="numeric"></div>
-    <div><label>اتاق</label><input id="a_Rooms" inputmode="numeric"></div>
-    <div><label>طبقه</label><input id="a_Floor"></div>
+    <div><label>طبقه</label><select id="a_Floor"></select></div>
+    <div><label>آسانسور</label><div class="seg" id="a_Elevator"></div></div>
+    <div><label>اتاق</label><div class="seg" id="a_Rooms"></div></div>
     <div><label>سن بنا</label><input id="a_Age"></div>
-    <div><label>قیمت کل (فروش)</label><input id="a_Price" inputmode="numeric"></div>
-    <div><label>ودیعه / رهن</label><input id="a_Deposit" inputmode="numeric"></div>
-    <div><label>اجاره ماهانه</label><input id="a_Rent" inputmode="numeric"></div>
-    <div><label>پارکینگ</label><input id="a_Parking"></div>
-    <div><label>آسانسور</label><input id="a_Elevator"></div>
+    <div><label>پارکینگ</label><div class="seg" id="a_Parking"></div></div>
+    <div id="w_Price"><label>مبلغ فروش</label><input id="a_Price" inputmode="numeric"></div>
+    <div id="w_Deposit"><label>ودیعه / رهن</label><input id="a_Deposit" inputmode="numeric"></div>
+    <div id="w_Rent"><label>اجاره ماهانه</label><input id="a_Rent" inputmode="numeric"></div>
     <div><label>نام مالک</label><input id="a_Owner"></div>
-    <div><label>موبایل</label><input id="a_Mobile" inputmode="tel"></div>
+    <div><label>تلفن</label><input id="a_Mobile" inputmode="tel"></div>
     <div class="full"><label>توضیحات</label><textarea id="a_Description"></textarea></div>
-    <div class="full"><label style="display:flex;gap:8px;align-items:center"><input type="checkbox" id="a_Shared" style="width:auto"> نمایش به دیگران</label></div>
+    <div class="full" id="w_Shared"><label class="chk"><input type="checkbox" id="a_Shared"> نمایش به دیگران</label></div>
   </div>
   <div class="err" id="aerr"></div>
   <div class="acts"><button class="btn" onclick="submitAdd()">ثبت</button><button class="btn g" onclick="closeM('mAdd')">انصراف</button></div>
 </div></div>
 
-<!-- مشتریان -->
 <div class="modal" id="mCust"><div class="box">
   <h2 id="cTitle">مشتری</h2>
   <div class="grid">
@@ -234,7 +271,7 @@ label,.mut{color:var(--mut)!important}
 
 <script>
 var TOKEN = localStorage.getItem('fl_token') || '';
-var ST = { names: {}, user: null, files: [], saved: [], customers: [], settings: {}, tab: 'dash', f: {} };
+var ST = { names: {}, user: null, files: [], saved: [], customers: [], settings: {}, statuses: [], tab: 'dash', f: {} };
 var TABS = [
   ['dash','📊 داشبورد'],['sale','📁 فروش'],['rent','🏠 اجاره'],['budget','💰 بودجه'],
   ['area','📍 منطقه'],['search','🔍 جستجو'],['saved','💾 ذخیره‌ها'],['cust','👥 مشتریان']
@@ -542,6 +579,7 @@ function card(f,s){
     '<div class="mut" style="margin-top:6px">کد '+c+' | '+esc(f.Date)+(f.Owner?' | '+esc(f.Owner):'')+(f.Mobile?' | '+esc(fixMob(f.Mobile)):'')+(f.Source==='دستی'?' | ثبت دستی':'')+'</div>'+
     (f.Source==='دستی'&&f.AddedBy?ownerBox(f.AddedBy):'')+
     (s&&(s.Status||s.Note)?'<div class="tags"><span class="tag d">'+esc(s.Status||'')+'</span><span class="mut">'+esc(s.Note||'')+'</span></div>':'')+
+    (function(){var st=getStatus('file',c);return st?'<div style="margin:4px 0"><span class="tag" style="background:#fef3c7;color:#92400e">وضعیت: '+esc(st)+'</span></div>':''})()+
     '<div class="acts" onclick="event.stopPropagation()">'+
     (mob?'<a class="btn s" href="tel:'+mob+'" style="text-decoration:none">📞 تماس</a>':'')+
     (s?'<button class="btn s" onclick="openNote(\''+c+'\')">📝 یادداشت</button><button class="btn g s" onclick="unsave(\''+c+'\')">❌ حذف از ذخیره</button>':
@@ -549,6 +587,9 @@ function card(f,s){
     '<button class="btn g s" onclick="makeAd(\''+c+'\')">آگهی دیوار</button>'+
     (ST.user.role==='admin'||(f.Source==='دستی'&&String(f.AddedBy).toLowerCase()===ST.user.username.toLowerCase())?
       '<button class="btn g s" onclick="delFile(\''+c+'\')">🗑</button>':'')+
+    (ST.user.role==='admin'||(f.Source==='دستی'&&String(f.AddedBy).toLowerCase()===ST.user.username.toLowerCase())?
+      '<button class="btn g s" onclick="openEdit(\''+c+'\')">✏️</button>':'')+
+    '<button class="btn g s" onclick="openStatusPicker(\'file\',\''+c+'\')">📊 وضعیت</button>'+
     '</div></div>';
 }
 function ownerName(u){var k=String(u||'').toLowerCase();return (ST.names&&ST.names[k])||u||''}
@@ -558,6 +599,18 @@ function fixMob(m){
   if(/^9\d{9}$/.test(s))s='0'+s;
   if(/^98\d{10}$/.test(s))s='0'+s.slice(2);
   return s;
+}
+function getStatus(type, code) {
+  var s = ST.statuses.filter(function(x) { return x.type === type && nd(x.code) === nd(code); })[0];
+  return s ? s.status : '';
+}
+function setStatus(type, code, status) {
+  call('api_setStatus', TOKEN, type, code, status).then(function(r) {
+    ST.statuses = ST.statuses.filter(function(x) { return !(x.type === type && nd(x.code) === nd(code)); });
+    if (status) ST.statuses.push({type: type, code: code, status: status, updated: r.UpdatedAt});
+    render();
+    toast('وضعیت ثبت شد');
+  }).catch(function(e) { toast('خطا: ' + e.message); });
 }
 function getFile(code){return ST.files.filter(function(x){return nd(x.Code)===nd(code)})[0]}
 
@@ -582,11 +635,212 @@ function saveNote(){
 }
 
 /* ---------- افزودن/حذف فایل ---------- */
-var ADD_IDS=['DealType','PropertyType','Address','Area','Rooms','Floor','Age','Price','Deposit','Rent','Parking','Elevator','Owner','Mobile','Description'];
-function openAdd(){ADD_IDS.forEach(function(k){if(k!=='DealType')$('a_'+k).value=''});$('a_Shared').checked=false;$('aerr').textContent='';openM('mAdd')}
+var ADD_IDS=['DealType','PropertyType','Address','Area','Floor','Age','Price','Deposit','Rent','Owner','Mobile','Description'];
+var PT_OPTS=['آپارتمان','ویلایی','زمین','تجاری'];
+var FL_OPTS=['همکف','1','2','3','4','5','6','7'];
+var EDIT_CODE=null;
+function fillSel(id,opts,val){
+  var o=opts.slice();if(val&&o.indexOf(val)<0)o.push(val);
+  $(id).innerHTML='<option value="">انتخاب کنید</option>'+o.map(function(x){return '<option>'+esc(x)+'</option>'}).join('');
+  $(id).value=val||'';
+}
+function segSet(id,opts,val){
+  var o=opts.slice();if(val&&o.indexOf(val)<0)o.push(val);
+  var el=$(id);el.setAttribute('data-v',val||'');
+  el.innerHTML=o.map(function(x){return '<button type="button" class="btn s '+(x===val?'':'g')+'" data-x="'+esc(x)+'">'+esc(x)+'</button>'}).join('');
+  Array.prototype.forEach.call(el.children,function(b){b.onclick=function(){
+    var cur=el.getAttribute('data-v'),x=b.getAttribute('data-x');el.setAttribute('data-v',cur===x?'':x);
+    Array.prototype.forEach.call(el.children,function(c){c.className='btn s '+(c.getAttribute('data-x')===el.getAttribute('data-v')?'':'g')});
+  }});
+}
+function segGet(id){return $(id).getAttribute('data-v')||''}
+function addDealUI(){
+  var sale=$('a_DealType').value==='فروش';
+  $('w_Price').style.display=sale?'':'none';
+  $('w_Deposit').style.display=sale?'none':'';
+  $('w_Rent').style.display=sale?'none':'';
+}
+function normYN(v){v=String(v||'').trim();if(!v)return '';return has(v)?'دارد':'ندارد'}
+function fillAdd(f){
+  f=f||{};EDIT_CODE=f.Code||null;
+  ADD_IDS.forEach(function(k){if(k==='PropertyType'||k==='Floor')return;$('a_'+k).value=f[k]||(k==='DealType'?'فروش':'')});
+  if(f.DealType)$('a_DealType').value=isSale(f)?'فروش':'رهن و اجاره';
+  fillSel('a_PropertyType',PT_OPTS,f.PropertyType||'');
+  fillSel('a_Floor',FL_OPTS,String(f.Floor||'').trim());
+  segSet('a_Elevator',['دارد','ندارد'],normYN(f.Elevator));
+  segSet('a_Parking',['دارد','ندارد'],normYN(f.Parking));
+  segSet('a_Rooms',['0','1','2','3'],String(f.Rooms||'').trim());
+  $('a_Shared').checked=String(f.Shared)==='1';
+  $('aerr').textContent='';addDealUI();
+}
+function openAdd(){fillAdd(null);$('aTitle').textContent='ثبت فایل دستی';$('w_Shared').style.display='';openM('mAdd')}
+function openEdit(code){
+  var f=getFile(code);if(!f)return;fillAdd(f);
+  $('aTitle').textContent='ویرایش فایل';
+  $('w_Shared').style.display=f.Source==='دستی'?'':'none';
+  openM('mAdd');
+}
+var VOICE_DATA = null;
+var VOICE_TYPE = 'file'; // 'file' or 'customer'
+
+function parseVoice(text) {
+  var result = {}, t = text.trim();
+  var saleKw = ['خریدار', 'میخواد بخره', 'متقاضی', 'فروش', 'خرید', 'بخره'];
+  var rentKw = ['رهن', 'اجاره', 'ودیعه', 'پیش', 'اجاره‌ای', 'رهنی'];
+  
+  // نوع معامله
+  if (saleKw.some(function(k){return t.indexOf(k)>=0})) result.DealType = 'فروش';
+  else if (rentKw.some(function(k){return t.indexOf(k)>=0})) result.DealType = 'رهن و اجاره';
+  
+  // مبلغ - الگوی ساده: "250 میلیون" یا "1 میلیارد"
+  var priceRe = /(\d+(?:\.\d+)?)\s*(میلیون|میلیارد)/g, m, prices = [];
+  while ((m = priceRe.exec(t))) {
+    var n = parseFloat(m[1]), u = m[2];
+    prices.push(u === 'میلیارد' ? n * 1000000000 : n * 1000000);
+  }
+  
+  // اعداد فارسی
+  var pn = {صفر:0,یک:1,دو:2,سه:3,چهار:4,پنج:5,شش:6,هفت:7,هشت:8,نه:9,ده:10,یازده:11,دوازده:12,سیزده:13,چهارده:14,پانزده:15,شانزده:16,هفده:17,هجده:18,نوزده:19,بیست:20,سی:30,چهل:40,پنجاه:50,شصت:60,هفتاد:70,هشتاد:80,نود:90,صد:100,دویست:200,سیصد:300,چهارصد:400,پانصد:500,ششصد:600,هفتصد:700,هشتصد:800,نهصد:900};
+  for (var w in pn) {
+    var r = new RegExp(w + '\\s*(میلیون|میلیارد)', 'g'), pm = r.exec(t);
+    if (pm) prices.push(pm[1] === 'میلیارد' ? pn[w] * 1000000000 : pn[w] * 1000000);
+  }
+  
+  if (result.DealType === 'فروش' && prices[0]) result.Price = String(prices[0]);
+  else if (result.DealType === 'رهن و اجاره') {
+    if (prices[0]) result.Deposit = String(prices[0]);
+    if (prices[1]) result.Rent = String(prices[1]);
+  }
+  
+  // آدرس
+  var addrKw = ['منطقه', 'خیابان', 'بلوار', 'کوچه', 'بهورز', 'فلاحی', 'شریعتی', 'ولیعصر', 'آزادی', 'مطهری'];
+  var addrParts = [];
+  addrKw.forEach(function(k){
+    var i = t.indexOf(k);
+    if (i >= 0) {
+      var after = t.substring(i, Math.min(t.length, i + 50));
+      addrParts.push(after.split(/[،.]/)[0].trim());
+    }
+  });
+  if (addrParts.length) result.Address = addrParts.join(' ');
+  
+  // متراژ
+  var areaM = /(\d+)\s*(متر|متری)/.exec(t);
+  if (areaM) result.Area = areaM[1];
+  
+  // تلفن
+  var phoneM = /(09\d{9})/.exec(t);
+  if (phoneM) result.Mobile = phoneM[1];
+  
+  // نام
+  var nameM = /(آقای|خانم)\s+(\S+)/.exec(t);
+  if (nameM) result.Owner = nameM[0];
+  
+  // اتاق
+  var roomM = /(\d+)\s*(خواب|اتاق)/.exec(t);
+  if (roomM) result.Rooms = roomM[1];
+  
+  // آسانسور
+  if (t.indexOf('آسانسور') >= 0 && t.indexOf('بدون') < 0) result.Elevator = 'دارد';
+  else if (t.indexOf('بدون آسانسور') >= 0) result.Elevator = 'ندارد';
+  
+  // پارکینگ
+  if (t.indexOf('پارکینگ') >= 0 && t.indexOf('بدون') < 0) result.Parking = 'دارد';
+  else if (t.indexOf('بدون پارکینگ') >= 0) result.Parking = 'ندارد';
+  
+  // نوع ملک
+  if (t.indexOf('آپارتمان') >= 0) result.PropertyType = 'آپارتمان';
+  else if (t.indexOf('ویلا') >= 0 || t.indexOf('ویلایی') >= 0) result.PropertyType = 'ویلایی';
+  else if (t.indexOf('زمین') >= 0) result.PropertyType = 'زمین';
+  else if (t.indexOf('تجاری') >= 0 || t.indexOf('مغازه') >= 0) result.PropertyType = 'تجاری';
+  
+  return result;
+}
+
+function startVoice() {
+  if (!window.Capacitor || !window.Capacitor.Plugins.SpeechRecognition) {
+    toast('ثبت صوتی فقط در اپلیکیشن موبایل فعال است');
+    return;
+  }
+  var SR = window.Capacitor.Plugins.SpeechRecognition;
+  SR.checkPermissions().then(function(p){
+    if (p.speechRecognition !== 'granted') {
+      return SR.requestPermissions().then(function(r){
+        if (r.speechRecognition !== 'granted') throw new Error('دسترسی به میکروفون داده نشد');
+      });
+    }
+  }).then(function(){
+    return SR.start({language: 'fa-IR', maxResults: 1, popup: true, partialResults: false});
+  }).then(function(r){
+    if (!r.matches || !r.matches.length) throw new Error('متنی شناسایی نشد');
+    var text = r.matches[0];
+    VOICE_DATA = parseVoice(text);
+    showVoiceConfirm(text, VOICE_DATA);
+  }).catch(function(e){
+    toast('خطا: ' + e.message);
+  });
+}
+
+function showVoiceConfirm(raw, data) {
+  $('vRaw').textContent = raw;
+  var html = '';
+  var labels = {DealType:'نوع معامله',PropertyType:'نوع ملک',Address:'آدرس',Area:'متراژ',Floor:'طبقه',Rooms:'اتاق',Age:'سن بنا',Elevator:'آسانسور',Parking:'پارکینگ',Price:'قیمت فروش',Deposit:'ودیعه',Rent:'اجاره',Owner:'نام مالک',Mobile:'تلفن',Description:'توضیحات',Name:'نام مشتری'};
+  for (var k in labels) {
+    var v = data[k] || '';
+    var cls = v ? '' : ' style="color:#999"';
+    html += '<div'+cls+'><label>'+esc(labels[k])+'</label><div style="font-weight:600">'+esc(v || '—')+'</div></div>';
+  }
+  $('vFields').innerHTML = html;
+  openM('mVoice');
+}
+
+function confirmVoice() {
+  if (!VOICE_DATA) return;
+  VOICE_DATA.Date = todayJalali().replace(/\//g, '/');
+  if (!VOICE_DATA.DealType) VOICE_DATA.DealType = 'فروش';
+  call('api_addFile', TOKEN, VOICE_DATA).then(function(r){
+    ST.files.push(r);
+    closeM('mVoice');
+    render();
+    toast('فایل ثبت شد');
+    VOICE_DATA = null;
+  }).catch(function(e){
+    toast('خطا: ' + e.message);
+  });
+}
+
+function editVoice() {
+  if (!VOICE_DATA) return;
+  fillAdd(VOICE_DATA);
+  closeM('mVoice');
+  openAdd();
+  VOICE_DATA = null;
+}
+
+var STATUS_REC = {type: '', code: ''};
+function openStatusPicker(type, code) {
+  STATUS_REC = {type: type, code: code};
+  $('sStatus').value = getStatus(type, code);
+  openM('mStatus');
+}
+function submitStatus() {
+  var st = $('sStatus').value;
+  setStatus(STATUS_REC.type, STATUS_REC.code, st);
+  closeM('mStatus');
+}
 function submitAdd(){
   var f={};ADD_IDS.forEach(function(k){f[k]=$('a_'+k).value});
-  f.Shared=$('a_Shared').checked?'1':'';f.Date=todayJalali().replace(/\//g,'/');
+  f.Elevator=segGet('a_Elevator');f.Parking=segGet('a_Parking');f.Rooms=segGet('a_Rooms');
+  f.Shared=$('a_Shared').checked?'1':'';
+  if(f.DealType==='فروش'){f.Deposit='';f.Rent=''}else f.Price='';
+  if(EDIT_CODE){
+    call('api_updateFile',TOKEN,EDIT_CODE,f).then(function(r){
+      ST.files=ST.files.map(function(x){return nd(x.Code)===nd(EDIT_CODE)?r:x});
+      closeM('mAdd');render();toast('ویرایش شد');
+    }).catch(function(e){$('aerr').textContent=e.message});
+    return;
+  }
+  f.Date=todayJalali().replace(/\//g,'/');
   call('api_addFile',TOKEN,f).then(function(r){ST.files.push(r);closeM('mAdd');render();toast('فایل ثبت شد')}).catch(function(e){$('aerr').textContent=e.message});
 }
 function delFile(code){

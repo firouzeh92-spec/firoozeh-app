@@ -164,10 +164,12 @@ label,.mut{color:var(--mut)!important}
     <label>وضعیت جدید</label>
     <select id="sStatus">
       <option value="">بدون وضعیت</option>
-      <option>در انتظار</option>
-      <option>در حال پیگیری</option>
       <option>موفق</option>
-      <option>لغو شده</option>
+      <option>در حال پیگیری</option>
+      <option>پاسخگو نبودند</option>
+      <option>پیگیری شود</option>
+      <option>واگذار شد</option>
+      <option>در انتظار</option>
       <option>نیاز به بررسی</option>
     </select>
   </div>
@@ -684,76 +686,73 @@ var VOICE_DATA = null;
 var VOICE_TYPE = 'file'; // 'file' or 'customer'
 
 function parseVoice(text) {
-  var result = {}, t = text.trim();
-  var saleKw = ['خریدار', 'میخواد بخره', 'متقاضی', 'فروش', 'خرید', 'بخره'];
-  var rentKw = ['رهن', 'اجاره', 'ودیعه', 'پیش', 'اجاره‌ای', 'رهنی'];
-  
-  // نوع معامله
-  if (saleKw.some(function(k){return t.indexOf(k)>=0})) result.DealType = 'فروش';
-  else if (rentKw.some(function(k){return t.indexOf(k)>=0})) result.DealType = 'رهن و اجاره';
-  
-  // مبلغ - الگوی ساده: "250 میلیون" یا "1 میلیارد"
-  var priceRe = /(\d+(?:\.\d+)?)\s*(میلیون|میلیارد)/g, m, prices = [];
-  while ((m = priceRe.exec(t))) {
-    var n = parseFloat(m[1]), u = m[2];
-    prices.push(u === 'میلیارد' ? n * 1000000000 : n * 1000000);
-  }
-  
-  // اعداد فارسی
-  var pn = {صفر:0,یک:1,دو:2,سه:3,چهار:4,پنج:5,شش:6,هفت:7,هشت:8,نه:9,ده:10,یازده:11,دوازده:12,سیزده:13,چهارده:14,پانزده:15,شانزده:16,هفده:17,هجده:18,نوزده:19,بیست:20,سی:30,چهل:40,پنجاه:50,شصت:60,هفتاد:70,هشتاد:80,نود:90,صد:100,دویست:200,سیصد:300,چهارصد:400,پانصد:500,ششصد:600,هفتصد:700,هشتصد:800,نهصد:900};
-  for (var w in pn) {
-    var r = new RegExp(w + '\\s*(میلیون|میلیارد)', 'g'), pm = r.exec(t);
-    if (pm) prices.push(pm[1] === 'میلیارد' ? pn[w] * 1000000000 : pn[w] * 1000000);
-  }
-  
-  if (result.DealType === 'فروش' && prices[0]) result.Price = String(prices[0]);
-  else if (result.DealType === 'رهن و اجاره') {
-    if (prices[0]) result.Deposit = String(prices[0]);
-    if (prices[1]) result.Rent = String(prices[1]);
-  }
-  
-  // آدرس
-  var addrKw = ['منطقه', 'خیابان', 'بلوار', 'کوچه', 'بهورز', 'فلاحی', 'شریعتی', 'ولیعصر', 'آزادی', 'مطهری'];
-  var addrParts = [];
-  addrKw.forEach(function(k){
-    var i = t.indexOf(k);
-    if (i >= 0) {
-      var after = t.substring(i, Math.min(t.length, i + 50));
-      addrParts.push(after.split(/[،.]/)[0].trim());
-    }
+  var result = {};
+  var t = String(text||'');
+  // ارقام فارسی/عربی -> لاتین
+  t = t.replace(/[۰-۹]/g,function(d){return String('۰۱۲۳۴۵۶۷۸۹'.indexOf(d))})
+       .replace(/[٠-٩]/g,function(d){return String('٠١٢٣٤٥٦٧٨٩'.indexOf(d))});
+  t = t.replace(/(\d)[,٬،](?=\d{3})/g,'$1').replace(/[‌]/g,' ').replace(/\s+/g,' ').trim();
+  // اعداد حروفی -> رقم (مثلاً «بیست و پنج» → 25)
+  var pn = {'صفر':0,'یک':1,'دو':2,'سه':3,'چهار':4,'پنج':5,'شش':6,'هفت':7,'هشت':8,'نه':9,'ده':10,'یازده':11,'دوازده':12,'سیزده':13,'چهارده':14,'پانزده':15,'شانزده':16,'هفده':17,'هجده':18,'نوزده':19,'بیست':20,'سی':30,'چهل':40,'پنجاه':50,'شصت':60,'هفتاد':70,'هشتاد':80,'نود':90,'صد':100,'یکصد':100,'دویست':200,'سیصد':300,'چهارصد':400,'پانصد':500,'ششصد':600,'هفتصد':700,'هشتصد':800,'نهصد':900};
+  var ws = Object.keys(pn).sort(function(a,b){return b.length-a.length}).join('|');
+  var wre = new RegExp('(^| )((?:'+ws+')(?: و (?:'+ws+'))*)(?= |$)','g');
+  t = t.replace(wre,function(_,pre,seq){
+    var sum=0; seq.split(' و ').forEach(function(w){sum+=pn[w]});
+    return pre+sum;
   });
-  if (addrParts.length) result.Address = addrParts.join(' ');
-  
-  // متراژ
-  var areaM = /(\d+)\s*(متر|متری)/.exec(t);
-  if (areaM) result.Area = areaM[1];
-  
+  var has=function(a){return a.some(function(k){return t.indexOf(k)>=0})};
+  // نوع معامله
+  if (has(['رهن','اجاره','ودیعه','پیش پرداخت','اجاره‌ای','رهنی'])) result.DealType='رهن و اجاره';
+  else if (has(['فروش','خرید','بخره','خریدار','متقاضی','می‌فروشم','میفروشم'])) result.DealType='فروش';
+  // مبالغ
+  var prices=[], pr=/(\d+(?:\.\d+)?) ?(میلیارد|میلیون)((?: و \d+(?:\.\d+)? ?(?:میلیارد|میلیون))*)/g, m;
+  var U={'میلیارد':1e9,'میلیون':1e6};
+  while((m=pr.exec(t))){
+    var s=parseFloat(m[1])*U[m[2]];
+    var rest=m[3]||'', r2=/(\d+(?:\.\d+)?) ?(میلیارد|میلیون)/g, x;
+    while((x=r2.exec(rest))) s+=parseFloat(x[1])*U[x[2]];
+    prices.push(Math.round(s));
+  }
+  var dep=/(?:ودیعه|رهن|پیش)\D{0,12}?(\d+(?:\.\d+)? ?(?:میلیارد|میلیون))/.exec(t);
+  var rnt=/اجاره\D{0,12}?(\d+(?:\.\d+)? ?(?:میلیارد|میلیون))/.exec(t);
+  if (result.DealType==='فروش'){ if(prices[0]) result.Price=String(prices[0]); }
+  else if (result.DealType==='رهن و اجاره'){
+    if(prices[0]) result.Deposit=String(prices[0]);
+    if(prices[1]) result.Rent=String(prices[1]);
+  }
+  // متراژ، طبقه، سن، اتاق
+  var a=/(\d+) ?(?:متر|متری)(?= |$)/.exec(t); if(a) result.Area=a[1];
+  var ORD={'اول':'1','دوم':'2','سوم':'3','چهارم':'4','پنجم':'5','ششم':'6','هفتم':'7','هشتم':'8','نهم':'9','دهم':'10'};
+  var fl=/طبقه ?(اول|دوم|سوم|چهارم|پنجم|ششم|هفتم|هشتم|نهم|دهم)/.exec(t);
+  if(fl){fl=[0,ORD[fl[1]]]}else fl=/طبقه ?(\d+|همکف)/.exec(t)||/(\d+) ?طبقه/.exec(t);
+  if(fl) result.Floor=fl[1]; else if(t.indexOf('همکف')>=0) result.Floor='همکف';
+  var ag=/سن(?: بنا)? ?(\d+)/.exec(t)||/(\d+) ?ساله/.exec(t)||/(\d+) ?سال(?: ساخت| سن)?/.exec(t);
+  if(ag) result.Age=ag[1];
+  var rm=/(\d+) ?(?:خواب|اتاق)/.exec(t); if(rm) result.Rooms=rm[1];
   // تلفن
-  var phoneM = /(09\d{9})/.exec(t);
-  if (phoneM) result.Mobile = phoneM[1];
-  
-  // نام
-  var nameM = /(آقای|خانم)\s+(\S+)/.exec(t);
-  if (nameM) result.Owner = nameM[0];
-  
-  // اتاق
-  var roomM = /(\d+)\s*(خواب|اتاق)/.exec(t);
-  if (roomM) result.Rooms = roomM[1];
-  
-  // آسانسور
-  if (t.indexOf('آسانسور') >= 0 && t.indexOf('بدون') < 0) result.Elevator = 'دارد';
-  else if (t.indexOf('بدون آسانسور') >= 0) result.Elevator = 'ندارد';
-  
-  // پارکینگ
-  if (t.indexOf('پارکینگ') >= 0 && t.indexOf('بدون') < 0) result.Parking = 'دارد';
-  else if (t.indexOf('بدون پارکینگ') >= 0) result.Parking = 'ندارد';
-  
+  var ph=/(0?9\d{2})[ -]?(\d{3})[ -]?(\d{4})/.exec(t);
+  if(ph) result.Mobile=(ph[1].charAt(0)==='0'?'':'0')+ph[1]+ph[2]+ph[3];
+  // مالک
+  var nm=/(آقای|خانم|جناب) ([^\d ]+(?: [^\d ]+)?)/.exec(t);
+  if(nm) result.Owner=nm[2].split(/ (?:تلفن|شماره|موبایل|آسانسور|پارکینگ)/)[0];
+  // آسانسور / پارکینگ
+  if(/بدون آسانسور|آسانسور ندارد|ندارد آسانسور/.test(t)) result.Elevator='ندارد';
+  else if(t.indexOf('آسانسور')>=0) result.Elevator='دارد';
+  if(/بدون پارکینگ|پارکینگ ندارد|ندارد پارکینگ/.test(t)) result.Parking='ندارد';
+  else if(t.indexOf('پارکینگ')>=0) result.Parking='دارد';
   // نوع ملک
-  if (t.indexOf('آپارتمان') >= 0) result.PropertyType = 'آپارتمان';
-  else if (t.indexOf('ویلا') >= 0 || t.indexOf('ویلایی') >= 0) result.PropertyType = 'ویلایی';
-  else if (t.indexOf('زمین') >= 0) result.PropertyType = 'زمین';
-  else if (t.indexOf('تجاری') >= 0 || t.indexOf('مغازه') >= 0) result.PropertyType = 'تجاری';
-  
+  if(t.indexOf('آپارتمان')>=0) result.PropertyType='آپارتمان';
+  else if(t.indexOf('ویلا')>=0) result.PropertyType='ویلایی';
+  else if(t.indexOf('زمین')>=0) result.PropertyType='زمین';
+  else if(/تجاری|مغازه|مغازه/.test(t)) result.PropertyType='تجاری';
+  // آدرس: از کلیدواژه تا اولین مشخصه بعدی
+  var ai=t.search(/منطقه|خیابان|بلوار|کوچه|فلاحی|شریعتی|ولیعصر|آزادی|مطهری|بهورز|میعاد|حسابی|مرواری/);
+  if(ai>=0){
+    var seg=t.substring(ai);
+    var cut=seg.search(/ (?:\d+ ?(?:متر|متری|خواب|اتاق|ساله|سال|میلیون|میلیارد)|طبقه|سن |قیمت|ودیعه|رهن|اجاره|آسانسور|پارکینگ|بدون|آقای|خانم|جناب|تلفن|شماره|موبایل|0?9\d{2})/);
+    if(cut>0) seg=seg.substring(0,cut);
+    result.Address=seg.split(/[،.]/)[0].trim();
+  }
   return result;
 }
 
